@@ -1,0 +1,1 @@
+for f in out/*/*.png; do magick "$f" -filter point -resize 200%x100% -define png:format=png24 -interlace none m.png && mv m.png "$f"; done
