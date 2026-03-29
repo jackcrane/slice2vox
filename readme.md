@@ -12,7 +12,19 @@ These scripts assume the following tools and files are already available on the 
 - `node`
 - The Node script `index.js` in this repository
 - A printer ICC/ICM profile, typically `./Stratasys_J750_Vivid_CMY_1mm.icm`
-- The macOS system sRGB profile at `/System/Library/ColorSync/Profiles/sRGB Profile.icc`
+- A source RGB ICC profile path passed on the CLI
+
+Common source profile locations to try:
+
+- macOS: `/System/Library/ColorSync/Profiles/sRGB Profile.icc`
+- Ubuntu/Debian with Ghostscript profiles: `/usr/share/color/icc/ghostscript/srgb.icc`
+- Ubuntu/Debian with colord profiles: `/usr/share/color/icc/colord/sRGB.icc`
+
+If those do not exist on your machine, search for one with:
+
+```sh
+find /usr/share/color -iname '*srgb*.icc' 2>/dev/null
+```
 
 Most scripts expect to be run from this repository or rely on paths relative to the script location.
 
@@ -27,7 +39,7 @@ Most scripts expect to be run from this repository or rely on paths relative to 
 ### Usage
 
 ```sh
-./run_profiles.sh [source_path] [out_root] [--layers=100]
+./run_profiles.sh <source_profile.icc> [source_path] [out_root] [--layers=100]
 ```
 
 ### Defaults
@@ -43,7 +55,7 @@ Most scripts expect to be run from this repository or rely on paths relative to 
 If `source_path` is a file, `run_profiles.sh` treats it as a single image and produces a full output stack:
 
 ```sh
-./run_profiles.sh input.png out --layers=100
+./run_profiles.sh /usr/share/color/icc/ghostscript/srgb.icc input.png out --layers=100
 ```
 
 Behavior:
@@ -60,7 +72,7 @@ This is the mode to use when you want a layer stack suitable for voxel printing 
 If `source_path` is a directory, the script switches to batch mode:
 
 ```sh
-./run_profiles.sh source_images batch_out
+./run_profiles.sh /usr/share/color/icc/ghostscript/srgb.icc source_images batch_out
 ```
 
 Behavior:
@@ -87,12 +99,12 @@ In directory mode, `--layers` is ignored on purpose. The output is one PNG per i
 ### `convert.sh`
 
 ```sh
-./convert.sh <profile.icc|icm> <input_image> <output_image>
+./convert.sh <source_profile.icc> <profile.icc|icm> <input_image> <output_image>
 ```
 
 Purpose:
 
-- Converts an input image from the macOS sRGB profile into the target printer ICC/ICM profile
+- Converts an input image from the provided source RGB ICC profile into the target printer ICC/ICM profile
 - Emits a PNG with 8-bit RGBA output, no interlacing, and stripped metadata
 
 This is the color-management step used by `run_profiles.sh` before dithering.
@@ -115,7 +127,7 @@ This is the handoff point from shell orchestration into the repository's JavaScr
 ### `matrix.sh`
 
 ```sh
-./matrix.sh <out_root> <hex_rgb> [--layers=N] [--vary=cm|my|cy]
+./matrix.sh <source_profile.icc> [out_root] [hex_rgb] [--layers=N] [--vary=cm|my|cy]
 ```
 
 Purpose:
@@ -140,7 +152,7 @@ Notable environment variables:
 ### `gencolor.sh`
 
 ```sh
-./gencolor.sh <icc_profile_path> <output_image> [hex_rgb]
+./gencolor.sh <source_profile.icc> <icc_profile_path> <output_image> [hex_rgb]
 ```
 
 Purpose:
@@ -198,19 +210,19 @@ This is a minimal helper for applying the same horizontal scaling that `run_prof
 Generate a voxel stack from a single image:
 
 ```sh
-./run_profiles.sh input.png out --layers=100
+./run_profiles.sh /usr/share/color/icc/ghostscript/srgb.icc input.png out --layers=100
 ```
 
 Batch-process a directory into one output PNG per source image:
 
 ```sh
-./run_profiles.sh ./inputs ./batch_out
+./run_profiles.sh /usr/share/color/icc/ghostscript/srgb.icc ./inputs ./batch_out
 ```
 
 Generate a blue calibration matrix:
 
 ```sh
-./matrix.sh blue_matrix 0000FF --layers=100 --vary=cm
+./matrix.sh /usr/share/color/icc/ghostscript/srgb.icc blue_matrix 0000FF --layers=100 --vary=cm
 ```
 
 Inspect the pixel distribution of a generated slice:

@@ -1,17 +1,37 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage: ./gencolor.sh <icc_profile_path> <output_image> [hex_rgb]
-# Example: ./gencolor.sh ../shared/Tavor_Xrite_i1Profiler_VividCMYW.icc pre.png 0000FF
+# Usage: ./gencolor.sh <source_profile.icc> <icc_profile_path> <output_image> [hex_rgb]
+# Example: ./gencolor.sh /usr/share/color/icc/ghostscript/srgb.icc ../shared/Tavor_Xrite_i1Profiler_VividCMYW.icc pre.png 0000FF
 
-ICC_PROFILE="${1:-}"
-OUTPUT_IMAGE="${2:-}"
-HEX_IN="${3:-0000FF}"
+print_source_profile_help() {
+  printf '%s\n' \
+    "Usage: $0 <source_profile.icc> <icc_profile_path> <output_image> [hex_rgb]" \
+    "" \
+    "Pass the path to the source RGB ICC profile explicitly." \
+    "Common locations to try:" \
+    "  macOS: /System/Library/ColorSync/Profiles/sRGB Profile.icc" \
+    "  Ubuntu/Debian (Ghostscript): /usr/share/color/icc/ghostscript/srgb.icc" \
+    "  Ubuntu/Debian (colord): /usr/share/color/icc/colord/sRGB.icc" \
+    "" \
+    "If you are unsure, try: find /usr/share/color -iname '*srgb*.icc' 2>/dev/null" >&2
+}
 
-if [ -z "${ICC_PROFILE}" ] || [ -z "${OUTPUT_IMAGE}" ]; then
-  echo "Usage: $0 <icc_profile_path> <output_image> [hex_rgb]" >&2
+SOURCE_PROFILE="${1:-}"
+ICC_PROFILE="${2:-}"
+OUTPUT_IMAGE="${3:-}"
+HEX_IN="${4:-0000FF}"
+
+if [ -z "${SOURCE_PROFILE}" ] || [ -z "${ICC_PROFILE}" ] || [ -z "${OUTPUT_IMAGE}" ]; then
+  print_source_profile_help
   exit 1
 fi
+
+[ -f "${SOURCE_PROFILE}" ] || {
+  printf 'Source profile not found: %s\n\n' "${SOURCE_PROFILE}" >&2
+  print_source_profile_help
+  exit 1
+}
 
 # normalize hex (# optional)
 HEX_UPPER="$(printf '%s' "${HEX_IN#\#}" | tr '[:lower:]' '[:upper:]')"
@@ -29,6 +49,6 @@ COLOR="#${HEX_UPPER}"
 mkdir -p "$(dirname "$OUTPUT_IMAGE")"
 
 magick -size 500x100 xc:"$COLOR" \
-  -profile "/System/Library/ColorSync/Profiles/sRGB Profile.icc" \
+  -profile "$SOURCE_PROFILE" \
   -profile "$ICC_PROFILE" \
   "$OUTPUT_IMAGE"

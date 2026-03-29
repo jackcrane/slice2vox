@@ -4,7 +4,7 @@ set -euo pipefail
 # matrix.sh — 1×N CMY bump matrix for a given HEX color (POSIX sh)
 #
 # Usage:
-#   ./matrix.sh <out_root> <hex_rgb> [--layers=N] [--vary=cm|my|cy]
+#   ./matrix.sh <source_profile.icc> [out_root] [hex_rgb] [--layers=N] [--vary=cm|my|cy]
 # Defaults:
 #   out_root=blue_matrix   hex_rgb=0000FF   layers=100   vary=cm
 #
@@ -18,13 +18,29 @@ set -euo pipefail
 #   FIXED_VAL="0"              # the third channel (not in --vary)
 #   KEEP_WORK=1                # keep temp workspace
 
-OUT_ROOT="${1:-blue_matrix}"
-HEX_RGB="${2:-0000FF}"
+print_source_profile_help() {
+  printf '%s\n' \
+    "Usage: $0 <source_profile.icc> [out_root] [hex_rgb] [--layers=N] [--vary=cm|my|cy]" \
+    "" \
+    "Pass the path to the source RGB ICC profile explicitly." \
+    "Common locations to try:" \
+    "  macOS: /System/Library/ColorSync/Profiles/sRGB Profile.icc" \
+    "  Ubuntu/Debian (Ghostscript): /usr/share/color/icc/ghostscript/srgb.icc" \
+    "  Ubuntu/Debian (colord): /usr/share/color/icc/colord/sRGB.icc" \
+    "" \
+    "If you are unsure, try: find /usr/share/color -iname '*srgb*.icc' 2>/dev/null" >&2
+}
+
+SOURCE_PROFILE="${1:-}"
+OUT_ROOT="${2:-blue_matrix}"
+HEX_RGB="${3:-0000FF}"
+
+[ -n "$SOURCE_PROFILE" ] || { print_source_profile_help; exit 1; }
 
 LAYERS=100
 VARY_PAIR="cm" # default: cyan↔magenta
-# consume flags after the two positionals
-set -- ${3+"$@"}
+# consume flags after the three positionals
+set -- ${4+"$@"}
 for arg in "$@"; do
   case "$arg" in
     --layers=*) LAYERS="${arg#--layers=}" ;;
@@ -43,6 +59,11 @@ FIXED_VAL="${FIXED_VAL:-0}"
 need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing: $1" >&2; exit 1; }; }
 need magick
 need awk
+[ -f "$SOURCE_PROFILE" ] || {
+  printf 'Source profile not found: %s\n\n' "$SOURCE_PROFILE" >&2
+  print_source_profile_help
+  exit 1
+}
 [ -f "$PROFILE" ] || { echo "Profile not found: $PROFILE" >&2; exit 1; }
 [ -f "$HALFTONE_JS" ] || { echo "Halftone JS not found: $HALFTONE_JS" >&2; exit 1; }
 [ -f "$GENCOLOR" ] || { echo "gencolor script not found: $GENCOLOR" >&2; exit 1; }
@@ -87,7 +108,7 @@ echo "==> Seqs:    A=$SWEEP_A_SEQ  B=$SWEEP_B_SEQ  fixed=$FIXED_VAL"
 
 # 1) base 100x100 square with profile for HEX
 PREPNG="$WORK_ROOT/pre.png"
-"$GENCOLOR" "$PROFILE" "$PREPNG" "$HEX_RGB"
+"$GENCOLOR" "$SOURCE_PROFILE" "$PROFILE" "$PREPNG" "$HEX_RGB"
 [ -f "$PREPNG" ] || { echo "Failed to create $PREPNG" >&2; exit 1; }
 
 # 2) halftone each column (map A/B to C/M/Y according to VARY_A/VARY_B)

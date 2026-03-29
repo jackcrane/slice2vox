@@ -6,7 +6,7 @@ set -euo pipefail
 # - DIRECTORY: produces ONE dithered PNG per source image (no stacks)
 #
 # Usage:
-#   ./run_profiles.sh [source_path] [out_root] [--layers=100]
+#   ./run_profiles.sh <source_profile.icc> [source_path] [out_root] [--layers=100]
 #
 # Defaults:
 #   source_path = input.png  (file or directory)
@@ -22,12 +22,26 @@ set -euo pipefail
 # --- resolve script directory (portable) ---
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
 
+print_source_profile_help() {
+  printf '%s\n' \
+    "Usage: $0 <source_profile.icc> [source_path] [out_root] [--layers=100]" \
+    "" \
+    "Pass the path to the source RGB ICC profile explicitly." \
+    "Common locations to try:" \
+    "  macOS: /System/Library/ColorSync/Profiles/sRGB Profile.icc" \
+    "  Ubuntu/Debian (Ghostscript): /usr/share/color/icc/ghostscript/srgb.icc" \
+    "  Ubuntu/Debian (colord): /usr/share/color/icc/colord/sRGB.icc" \
+    "" \
+    "If you are unsure, try: find /usr/share/color -iname '*srgb*.icc' 2>/dev/null" >&2
+}
+
 # --- defaults ---
+SOURCE_PROFILE=""
 SOURCE_PATH="input.png"
 OUT_ROOT="out"
 LAYERS="100"
 
-# --- parse args (now: INPUT first, then OUTPUT) ---
+# --- parse args ---
 positional_count=0
 for arg in "$@"; do
   case "$arg" in
@@ -38,8 +52,9 @@ for arg in "$@"; do
     --*) echo "Unknown option: $arg" >&2; exit 1 ;;
     *)
       case $positional_count in
-        0) SOURCE_PATH="$arg" ;;
-        1) OUT_ROOT="$arg" ;;
+        0) SOURCE_PROFILE="$arg" ;;
+        1) SOURCE_PATH="$arg" ;;
+        2) OUT_ROOT="$arg" ;;
         *) echo "Too many positional args: $arg" >&2; exit 1 ;;
       esac
       positional_count=$((positional_count+1))
@@ -47,11 +62,21 @@ for arg in "$@"; do
   esac
 done
 
+if [ -z "$SOURCE_PROFILE" ]; then
+  print_source_profile_help
+  exit 1
+fi
+
 CONVERT="$SCRIPT_DIR/convert.sh"
 DITHER="$SCRIPT_DIR/dither.sh"
 PROFILE="$SCRIPT_DIR/./Stratasys_J750_Vivid_CMY_1mm.icm"
 
 # --- sanity checks ---
+[ -f "$SOURCE_PROFILE" ] || {
+  printf 'Source profile not found: %s\n\n' "$SOURCE_PROFILE" >&2
+  print_source_profile_help
+  exit 1
+}
 [ -f "$CONVERT" ] || { echo "Missing: $CONVERT" >&2; exit 1; }
 [ -f "$DITHER" ]  || { echo "Missing: $DITHER"  >&2; exit 1; }
 [ -f "$PROFILE" ] || { echo "Profile not found: $PROFILE" >&2; exit 1; }
@@ -87,7 +112,7 @@ process_single_image() {
   echo "==> Mode: SINGLE (convert → dither(stack:$LAYERS) → scale)"
   echo "==> Layers: $LAYERS"
 
-  "$CONVERT" "$PROFILE" "$src_img" "$PREPNG"
+  "$CONVERT" "$SOURCE_PROFILE" "$PROFILE" "$src_img" "$PREPNG"
   "$DITHER"  "$PREPNG" "$OUT_ROOT" "$LAYERS"
 
   scale_pngs_in_dir "$OUT_ROOT"
@@ -121,7 +146,7 @@ process_directory() {
     mkdir -p "$outtmp"
 
     # convert to profiled pre.png
-    "$CONVERT" "$PROFILE" "$img" "$prepng"
+    "$CONVERT" "$SOURCE_PROFILE" "$PROFILE" "$img" "$prepng"
 
     # Dither to a SINGLE output by forcing 1 layer into a temp dir
     "$DITHER" "$prepng" "$outtmp" 1
