@@ -11,7 +11,7 @@ These scripts assume the following tools and files are already available on the 
 - `magick` from ImageMagick
 - `node`
 - The Node script `index.js` in this repository
-- A printer ICC/ICM profile, typically `../shared/profiles/Stratasys_J750_Vivid_CMY_1mm.icm`
+- A printer ICC/ICM profile, typically `./Stratasys_J750_Vivid_CMY_1mm.icm`
 - The macOS system sRGB profile at `/System/Library/ColorSync/Profiles/sRGB Profile.icc`
 
 Most scripts expect to be run from this repository or rely on paths relative to the script location.
@@ -77,7 +77,7 @@ In directory mode, `--layers` is ignored on purpose. The output is one PNG per i
 ### Important implementation details
 
 - Script paths are resolved relative to `run_profiles.sh`, not the current working directory.
-- The expected printer profile is `../shared/profiles/Stratasys_J750_Vivid_CMY_1mm.icm`.
+- The expected printer profile is `./Stratasys_J750_Vivid_CMY_1mm.icm`.
 - Existing output directories are removed before processing starts.
 - Temporary directories are created per input image in directory mode and cleaned up automatically.
 - Scaling is done after dithering, not before.

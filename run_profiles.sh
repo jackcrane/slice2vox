@@ -49,7 +49,7 @@ done
 
 CONVERT="$SCRIPT_DIR/convert.sh"
 DITHER="$SCRIPT_DIR/dither.sh"
-PROFILE="$SCRIPT_DIR/../shared/profiles/Stratasys_J750_Vivid_CMY_1mm.icm"
+PROFILE="$SCRIPT_DIR/./Stratasys_J750_Vivid_CMY_1mm.icm"
 
 # --- sanity checks ---
 [ -f "$CONVERT" ] || { echo "Missing: $CONVERT" >&2; exit 1; }

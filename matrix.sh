@@ -9,7 +9,7 @@ set -euo pipefail
 #   out_root=blue_matrix   hex_rgb=0000FF   layers=100   vary=cm
 #
 # Env:
-#   PROFILE=../shared/profiles/Stratasys_J750_Vivid_CMY_1mm.icm
+#   PROFILE=./Stratasys_J750_Vivid_CMY_1mm.icm
 #   HALFTONE_JS=./index.js
 #   GENCOLOR=./gencolor.sh
 #   # Sequences (applied to the two channels selected by --vary). Must yield equal counts.
@@ -32,7 +32,7 @@ for arg in "$@"; do
   esac
 done
 
-PROFILE="${PROFILE:-../shared/profiles/Stratasys_J750_Vivid_CMY_1mm.icm}"
+PROFILE="${PROFILE:-./Stratasys_J750_Vivid_CMY_1mm.icm}"
 HALFTONE_JS="${HALFTONE_JS:-./index.js}"
 GENCOLOR="${GENCOLOR:-./gencolor.sh}"
 
