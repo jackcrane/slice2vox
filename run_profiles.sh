@@ -136,7 +136,6 @@ process_directory() {
     basefile="$(basename "$img")"
     stem="${basefile%.*}"
 
-    echo "----"
     echo "Processing: $basefile → $stem.png"
 
     # temp workspace per image
